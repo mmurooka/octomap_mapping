@@ -149,6 +149,8 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_tfPointCloudSub = new tf::MessageFilter<sensor_msgs::PointCloud2> (*m_pointCloudSub, m_tfListener, m_worldFrameId, 5);
   m_tfPointCloudSub->registerCallback(boost::bind(&OctomapServer::insertCloudCallback, this, _1));
 
+  m_contactSensorSub = m_nh.subscribe("contact_sensor_array", 1, &OctomapServer::insertContactSensorCallback, this);
+
   m_octomapBinaryService = m_nh.advertiseService("octomap_binary", &OctomapServer::octomapBinarySrv, this);
   m_octomapFullService = m_nh.advertiseService("octomap_full", &OctomapServer::octomapFullSrv, this);
   m_clearBBXService = private_nh.advertiseService("clear_bbx", &OctomapServer::clearBBXSrv, this);
@@ -230,6 +232,49 @@ bool OctomapServer::openFile(const std::string& filename){
 
   return true;
 
+}
+
+void OctomapServer::insertContactSensorCallback(const octomap_msgs::ContactSensorArrayConstPtr& msg){
+  ros::WallTime startTime = ros::WallTime::now();
+
+  // for(size_t i = 0; i < msg->datas.size(); i++) {}
+  for(std::vector<octomap_msgs::ContactSensor>::const_iterator it = msg->datas.begin(), end=msg->datas.end(); it!= end; ++it){
+    ROS_WARN_STREAM("Insert data of contact sensor [" << it->meshfile << "]");
+  }
+
+  return;
+  // //
+  // // generate point cloud from mesh
+  // //
+  // PCLPointCloud pc;
+  // // data.mesh => pc
+  // // TODO
+
+
+  // tf::StampedTransform meshCentroidToWorldTf;
+  // // data.pose => meshCentroidToWorldTf
+  // // TODO
+
+  // Eigen::Matrix4f meshCentroidToWorld;
+  // pcl_ros::transformAsMatrix(meshCentroidToWorldTf, meshCentroidToWorld);
+
+  // PCLPointCloud pc_ground; // segmented ground plane
+  // PCLPointCloud pc_nonground; // everything else
+
+  // // directly transform to map frame:
+  // pcl::transformPointCloud(pc, pc, meshCentroidToWorld);
+
+  // pc_nonground = pc;
+  // // pc_nonground is empty without ground segmentation
+  // pc_ground.header = pc.header;
+  // pc_nonground.header = pc.header;
+
+  // insertScan(meshCentroidToWorldTf.getOrigin(), pc_ground, pc_nonground);
+
+  // double total_elapsed = (ros::WallTime::now() - startTime).toSec();
+  // ROS_DEBUG("MeshContact insertion in OctomapServer done (%zu+%zu pts (ground/nonground), %f sec)", pc_ground.size(), pc_nonground.size(), total_elapsed);
+
+  // //publishAll(cloud->header.stamp);
 }
 
 void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud){

@@ -61,6 +61,7 @@
 #include <octomap_msgs/GetOctomap.h>
 #include <octomap_msgs/BoundingBoxQuery.h>
 #include <octomap_msgs/conversions.h>
+#include <octomap_msgs/ContactSensorArray.h>
 
 #include <octomap_ros/conversions.h>
 #include <octomap/octomap.h>
@@ -85,6 +86,7 @@ public:
   bool resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp);
 
   virtual void insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud);
+  virtual void insertContactSensorCallback(const octomap_msgs::ContactSensorArrayConstPtr& msg);
   virtual bool openFile(const std::string& filename);
 
 protected:
@@ -194,6 +196,7 @@ protected:
   ros::ServiceServer m_octomapBinaryService, m_octomapFullService, m_clearBBXService, m_resetService;
   tf::TransformListener m_tfListener;
   dynamic_reconfigure::Server<OctomapServerConfig> m_reconfigureServer;
+  ros::Subscriber m_contactSensorSub;
 
   octomap::OcTree* m_octree;
   octomap::KeyRay m_keyRay;  // temp storage for ray casting
