@@ -149,7 +149,7 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_tfPointCloudSub = new tf::MessageFilter<sensor_msgs::PointCloud2> (*m_pointCloudSub, m_tfListener, m_worldFrameId, 5);
   m_tfPointCloudSub->registerCallback(boost::bind(&OctomapServer::insertCloudCallback, this, _1));
 
-  m_contactSensorSub = m_nh.subscribe("contact_sensor_array", 1, &OctomapServer::insertContactSensorCallback, this);
+  m_contactSensorSub = m_nh.subscribe("contact_sensor_array", 1000, &OctomapServer::insertContactSensorCallback, this);
 
   m_octomapBinaryService = m_nh.advertiseService("octomap_binary", &OctomapServer::octomapBinarySrv, this);
   m_octomapFullService = m_nh.advertiseService("octomap_full", &OctomapServer::octomapFullSrv, this);
@@ -160,6 +160,8 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
 
   f = boost::bind(&OctomapServer::reconfigureCallback, this, _1, _2);
   m_reconfigureServer.setCallback(f);
+
+  initContactSensor(private_nh);
 }
 
 OctomapServer::~OctomapServer(){
@@ -234,6 +236,80 @@ bool OctomapServer::openFile(const std::string& filename){
 
 }
 
+void OctomapServer::initContactSensor(ros::NodeHandle private_nh_){
+  
+  private_nh_.param<double>("min_sensor_dist", min_sensor_dist_, 0.01);
+  double default_padding, default_scale;
+  private_nh_.param<double>("self_see_default_padding", default_padding, .01);
+  private_nh_.param<double>("self_see_default_scale", default_scale, 1.0);
+  std::vector<robot_self_filter::LinkInfo> links;
+  std::string link_names;
+
+  if(!private_nh_.hasParam("self_see_links")) {
+    ROS_WARN("No links specified for self filtering.");
+  } else {
+    XmlRpc::XmlRpcValue ssl_vals;;
+    private_nh_.getParam("self_see_links", ssl_vals);
+    if(ssl_vals.getType() != XmlRpc::XmlRpcValue::TypeArray) {
+      ROS_WARN("Self see links need to be an array");
+    } else {
+      if(ssl_vals.size() == 0) {
+        ROS_WARN("No values in self see links array");
+      } else {
+        for(int i = 0; i < ssl_vals.size(); i++) {
+          robot_self_filter::LinkInfo li;
+          if(ssl_vals[i].getType() != XmlRpc::XmlRpcValue::TypeStruct) {
+            ROS_WARN("Self see links entry %d is not a structure.  Stopping processing of self see links",i);
+            break;
+          }
+          if(!ssl_vals[i].hasMember("name")) {
+            ROS_WARN("Self see links entry %d has no name.  Stopping processing of self see links",i);
+            break;
+          }
+          li.name = std::string(ssl_vals[i]["name"]);
+          if(!ssl_vals[i].hasMember("padding")) {
+            ROS_DEBUG("Self see links entry %d has no padding.  Assuming default padding of %g",i,default_padding);
+            li.padding = default_padding;
+          } else {
+            li.padding = ssl_vals[i]["padding"];
+          }
+          if(!ssl_vals[i].hasMember("scale")) {
+            ROS_DEBUG("Self see links entry %d has no scale.  Assuming default scale of %g",i,default_scale);
+            li.scale = default_scale;
+          } else {
+            li.scale = ssl_vals[i]["scale"];
+          }
+          links.push_back(li);
+        }
+      }
+    }
+  }
+  m_selfMask = new robot_self_filter::SelfMask<pcl::PointXYZ>(m_tfListener, links);
+}
+
+void OctomapServer::insertContactSensor(){
+
+  std_msgs::Header tmpHeader;
+  tmpHeader.frame_id = m_worldFrameId;
+  tmpHeader.stamp = ros::Time::now();
+  m_selfMask->assumeFrame(tmpHeader);
+
+  octomap::point3d minPt(-100, -100, -100), maxPt(100, 100, 100);
+  OcTree::leaf_bbx_iterator it(m_octree, minPt, maxPt);
+  for(OcTree::leaf_bbx_iterator it = m_octree->begin_leafs_bbx(minPt, maxPt), end = m_octree->end_leafs_bbx(); it!= end; ++it)
+    {
+      octomap::point3d tmpPt = it.getCoordinate();
+      if (m_selfMask->getMaskContainment(tmpPt(0), tmpPt(1), tmpPt(2)) == robot_self_filter::INSIDE) {
+        m_octree->updateNode(it.getIndexKey(), m_octree->getProbMissContactSensorLog());
+        // ROS_WARN_STREAM("Node center: " << it.getCoordinate());
+        // ROS_WARN_STREAM("Node size: " << it.getSize());
+        // ROS_WARN_STREAM("Node value: " << it->getValue());
+        // ROS_WARN_STREAM("Node depth: " << it.getDepth());
+      } else {
+      }
+    }
+}
+
 void OctomapServer::insertContactSensorCallback(const octomap_msgs::ContactSensorArrayConstPtr& msg){
   ros::WallTime startTime = ros::WallTime::now();
 
@@ -242,39 +318,16 @@ void OctomapServer::insertContactSensorCallback(const octomap_msgs::ContactSenso
     ROS_WARN_STREAM("Insert data of contact sensor [" << it->meshfile << "]");
   }
 
-  return;
-  // //
-  // // generate point cloud from mesh
-  // //
-  // PCLPointCloud pc;
-  // // data.mesh => pc
-  // // TODO
+  octomap::point3d minPt(-100, -100, -100), maxPt(100, 100, 100);
+  OcTree::leaf_bbx_iterator it(m_octree, minPt, maxPt);
 
-
-  // tf::StampedTransform meshCentroidToWorldTf;
-  // // data.pose => meshCentroidToWorldTf
-  // // TODO
-
-  // Eigen::Matrix4f meshCentroidToWorld;
-  // pcl_ros::transformAsMatrix(meshCentroidToWorldTf, meshCentroidToWorld);
-
-  // PCLPointCloud pc_ground; // segmented ground plane
-  // PCLPointCloud pc_nonground; // everything else
-
-  // // directly transform to map frame:
-  // pcl::transformPointCloud(pc, pc, meshCentroidToWorld);
-
-  // pc_nonground = pc;
-  // // pc_nonground is empty without ground segmentation
-  // pc_ground.header = pc.header;
-  // pc_nonground.header = pc.header;
-
-  // insertScan(meshCentroidToWorldTf.getOrigin(), pc_ground, pc_nonground);
-
-  // double total_elapsed = (ros::WallTime::now() - startTime).toSec();
-  // ROS_DEBUG("MeshContact insertion in OctomapServer done (%zu+%zu pts (ground/nonground), %f sec)", pc_ground.size(), pc_nonground.size(), total_elapsed);
-
-  // //publishAll(cloud->header.stamp);
+  for(OcTree::leaf_bbx_iterator it = m_octree->begin_leafs_bbx(minPt, maxPt), end = m_octree->end_leafs_bbx(); it!= end; ++it)
+    {
+      // std::cout << "Node center: " << it.getCoordinate() << std::endl;
+      // std::cout << "Node size: " << it.getSize() << std::endl;
+      // std::cout << "Node value: " << it->getValue() << std::endl;
+      // std::cout << "Node depth: " << it.getDepth() << std::endl;
+    }
 }
 
 void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud){
@@ -350,6 +403,8 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
 
 
   insertScan(sensorToWorldTf.getOrigin(), pc_ground, pc_nonground);
+
+  insertContactSensor();
 
   double total_elapsed = (ros::WallTime::now() - startTime).toSec();
   ROS_DEBUG("Pointcloud insertion in OctomapServer done (%zu+%zu pts (ground/nonground), %f sec)", pc_ground.size(), pc_nonground.size(), total_elapsed);

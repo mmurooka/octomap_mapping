@@ -67,9 +67,10 @@
 #include <octomap/octomap.h>
 #include <octomap/OcTreeKey.h>
 
+#include <pr2_navigation_self_filter/self_mask.h>
 
 namespace octomap_server {
-class OctomapServer{
+class OctomapServer {
 
 public:
   typedef pcl::PointCloud<pcl::PointXYZ> PCLPointCloud;
@@ -86,6 +87,8 @@ public:
   bool resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp);
 
   virtual void insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud);
+  void initContactSensor(ros::NodeHandle private_nh_);
+  void insertContactSensor();
   virtual void insertContactSensorCallback(const octomap_msgs::ContactSensorArrayConstPtr& msg);
   virtual bool openFile(const std::string& filename);
 
@@ -245,6 +248,9 @@ protected:
   octomap::OcTreeKey m_paddedMinKey;
   unsigned m_multires2DScale;
   bool m_projectCompleteMap;
+
+  robot_self_filter::SelfMask<pcl::PointXYZ>* m_selfMask;
+  double min_sensor_dist_;
 };
 }
 
