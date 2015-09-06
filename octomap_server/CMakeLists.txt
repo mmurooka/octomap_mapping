@@ -14,6 +14,7 @@ set(PACKAGE_DEPENDENCIES
   octomap_msgs
   dynamic_reconfigure
   nodelet  
+  pr2_navigation_self_filter
 )
 
 
@@ -22,6 +23,7 @@ find_package(catkin REQUIRED COMPONENTS ${PACKAGE_DEPENDENCIES})
 find_package(PCL REQUIRED QUIET COMPONENTS common sample_consensus io segmentation filters)
 
 find_package(octomap REQUIRED)
+find_package(pr2_navigation_self_filter REQUIRED)
 add_definitions(-DOCTOMAP_NODEBUGOUT)
 
 include_directories(
@@ -29,6 +31,7 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
   ${PCL_INCLUDE_DIRS}
   ${OCTOMAP_INCLUDE_DIRS}
+  ${PR2_NAVIGATION_SELF_FILTER_INCLUDE_DIRS}
 )
 
 
