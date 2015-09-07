@@ -328,18 +328,90 @@ void OctomapServer::insertContactSensor(){
   //   }
 
   // iterate ver.2
-  for (OcTree::iterator it = m_octree->begin(m_maxTreeDepth), end = m_octree->end(); it != end; ++it)
-  {
-    octomap::point3d tmpPt = it.getCoordinate();
-    if (m_selfMask->getMaskContainment(tmpPt(0), tmpPt(1), tmpPt(2)) == robot_self_filter::INSIDE) {
-      m_octree->updateNode(it.getKey(), m_octree->getProbMissContactSensorLog());
-      // m_octree->updateNode(it.getIndexKey(), m_octree->getProbMissContactSensorLog());
-      // ROS_WARN_STREAM("Node center: " << it.getCoordinate());
-      // ROS_WARN_STREAM("Node size: " << it.getSize());
-      // ROS_WARN_STREAM("Node value: " << it->getValue());
-      // ROS_WARN_STREAM("Node depth: " << it.getDepth());
-      } else {
+  // for (OcTree::iterator it = m_octree->begin(m_maxTreeDepth), end = m_octree->end(); it != end; ++it)
+  // {
+  //   octomap::point3d tmpPt = it.getCoordinate();
+  //   if (m_selfMask->getMaskContainment(tmpPt(0), tmpPt(1), tmpPt(2)) == robot_self_filter::INSIDE) {
+  //     m_octree->updateNode(it.getKey(), m_octree->getProbMissContactSensorLog());
+  //     // m_octree->updateNode(it.getIndexKey(), m_octree->getProbMissContactSensorLog());
+  //     // ROS_WARN_STREAM("Node center: " << it.getCoordinate());
+  //     // ROS_WARN_STREAM("Node size: " << it.getSize());
+  //     // ROS_WARN_STREAM("Node value: " << it->getValue());
+  //     // ROS_WARN_STREAM("Node depth: " << it.getDepth());
+  //     } else {
+  //     }
+  // }
+
+  // iterate ver.3
+  double offset = m_offsetVisualizeUnknown;
+  // todo : get range from link bbox
+  point3d pmin( m_pointcloudMinX + offset, m_pointcloudMinY + offset, m_pointcloudMinZ + offset);
+  point3d pmax( m_pointcloudMaxX - offset, m_pointcloudMaxY - offset, m_pointcloudMaxZ - offset);
+  float diff[3];
+  unsigned int steps[3];
+  double resolution = m_octree->getResolution();
+  for (int i=0;i<3;++i) {
+    diff[i] = pmax(i) - pmin(i);
+    steps[i] = floor(diff[i] / resolution);
+    //      std::cout << "bbx " << i << " size: " << diff[i] << " " << steps[i] << " steps\n";
+  }
+
+  // loop for grids of octomap
+  point3d p = pmin;
+  for (unsigned int x=0; x<steps[0]; ++x) {
+    p.x() += resolution;
+    for (unsigned int y=0; y<steps[1]; ++y) {
+      p.y() += resolution;
+      for (unsigned int z=0; z<steps[2]; ++z) {
+        // std::cout << "querying p=" << p << std::endl;
+        p.z() += resolution;
+
+        // loop for vertices of each gird
+        point3d vertex_offset(-resolution/2.0, -resolution/2.0, -resolution/2.0);
+        point3d vertex;
+        bool contain_flag = false;
+        bool not_contain_flag = false;
+        for (int i=0; i<2; i++) {
+          if (i==1) { vertex_offset.z() += resolution; }
+          for (int j=0; j<2; j++) {
+            if (j==1) { vertex_offset.y() += resolution; }
+            for (int k=0; k<2; k++) {
+              if(k==1) { vertex_offset.x() += resolution; }
+              vertex = p + vertex_offset;
+              // std::cout << "vertex = " << vertex << std::endl;
+              if (m_selfMask->getMaskContainment(vertex(0), vertex(1), vertex(2)) == robot_self_filter::INSIDE) {
+                // std::cout << "inside vertex = " << vertex << std::endl;
+                contain_flag = true;
+              } else {
+                not_contain_flag = true;
+              }
+              if (contain_flag && not_contain_flag) {
+                // break from loop
+                i = 2;
+                j = 2;
+                k = 2;
+              }
+            }
+            vertex_offset.x() -= resolution;
+          }
+          vertex_offset.y() -= resolution;
+        }
+
+        // update probability of grid
+        if (contain_flag) {
+          if (not_contain_flag) {
+            // todo : update probability
+            //std::cout << "surface grid position = " << p << std::endl;
+          } else {
+            // todo : update probability
+            //std::cout << "inside grid position = " << p << std::endl;
+          }
+        }
+
       }
+      p.z() = pmin.z();
+    }
+    p.y() = pmin.y();
   }
 }
 
