@@ -89,7 +89,7 @@ public:
   virtual void insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud);
   void initContactSensor(ros::NodeHandle private_nh_);
   void insertContactSensor();
-  virtual void insertContactSensorCallback(const octomap_msgs::ContactSensorArrayConstPtr& msg);
+  virtual void insertContactSensorCallback(const octomap_msgs::ContactSensorArray::ConstPtr& msg);
   virtual bool openFile(const std::string& filename);
 
 protected:
@@ -195,11 +195,13 @@ protected:
   ros::NodeHandle m_nh;
   ros::Publisher  m_markerPub, m_binaryMapPub, m_fullMapPub, m_pointCloudPub,m_unknownPointCloudPub, m_collisionObjectPub, m_mapPub, m_cmapPub, m_fmapPub, m_fmarkerPub, m_umarkerPub;
   message_filters::Subscriber<sensor_msgs::PointCloud2>* m_pointCloudSub;
+  message_filters::Subscriber<octomap_msgs::ContactSensorArray>* m_contactSensorSub;
+
   tf::MessageFilter<sensor_msgs::PointCloud2>* m_tfPointCloudSub;
+  tf::MessageFilter<octomap_msgs::ContactSensorArray>* m_tfContactSensorSub;
   ros::ServiceServer m_octomapBinaryService, m_octomapFullService, m_clearBBXService, m_resetService;
   tf::TransformListener m_tfListener;
   dynamic_reconfigure::Server<OctomapServerConfig> m_reconfigureServer;
-  ros::Subscriber m_contactSensorSub;
 
   octomap::OcTree* m_octree;
   octomap::KeyRay m_keyRay;  // temp storage for ray casting

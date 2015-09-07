@@ -17,11 +17,12 @@
     <param name="step_y" value="4" />
   </node>
 
-  <node pkg="octomap_server" type="octomap_server_node" name="octomap_server" output="screen">
+  <node pkg="octomap_server" type="octomap_server_node" name="octomap_server"
+        output="screen">
     <param name="resolution" value="0.05" />
 
     <!-- fixed map frame (set to 'map' if SLAM or localization running!) -->
-    <param name="frame_id" type="string" value="gazebo_world" />
+    <param name="frame_id" type="string" value="gazebo_world"/>
 
     <!-- maximum range to integrate (speedup!) -->
     <param name="sensor_model/max_range" value="5.0" />
@@ -41,5 +42,8 @@
     <param name="pointcloud_min_x" value="-2" />
     <param name="pointcloud_max_x" value="2" />
   </node>
+
+  <node pkg="octomap_server" type="test_contact_sensor.py" name="test_contact_sensor"
+        output="screen" />
 
 </launch>

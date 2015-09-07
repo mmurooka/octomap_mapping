@@ -162,7 +162,9 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_tfPointCloudSub = new tf::MessageFilter<sensor_msgs::PointCloud2> (*m_pointCloudSub, m_tfListener, m_worldFrameId, 5);
   m_tfPointCloudSub->registerCallback(boost::bind(&OctomapServer::insertCloudCallback, this, _1));
 
-  m_contactSensorSub = m_nh.subscribe("contact_sensor_array", 1000, &OctomapServer::insertContactSensorCallback, this);
+  m_contactSensorSub = new message_filters::Subscriber<octomap_msgs::ContactSensorArray> (m_nh, "contact_sensors_in", 5);
+  m_tfContactSensorSub = new tf::MessageFilter<octomap_msgs::ContactSensorArray> (*m_contactSensorSub, m_tfListener, m_worldFrameId, 5);
+  m_tfContactSensorSub->registerCallback(boost::bind(&OctomapServer::insertContactSensorCallback, this, _1));
 
   m_octomapBinaryService = m_nh.advertiseService("octomap_binary", &OctomapServer::octomapBinarySrv, this);
   m_octomapFullService = m_nh.advertiseService("octomap_full", &OctomapServer::octomapFullSrv, this);
@@ -301,6 +303,8 @@ void OctomapServer::initContactSensor(ros::NodeHandle private_nh_){
 }
 
 void OctomapServer::insertContactSensor(){
+  ROS_WARN_STREAM("insert contact sensor");
+
   std_msgs::Header tmpHeader;
   tmpHeader.frame_id = m_worldFrameId;
   tmpHeader.stamp = ros::Time::now();
@@ -323,13 +327,13 @@ void OctomapServer::insertContactSensor(){
   //     }
   //   }
 
-  // // iterate ver.2
-  ROS_WARN_STREAM("Start");
+  // iterate ver.2
   for (OcTree::iterator it = m_octree->begin(m_maxTreeDepth), end = m_octree->end(); it != end; ++it)
   {
     octomap::point3d tmpPt = it.getCoordinate();
     if (m_selfMask->getMaskContainment(tmpPt(0), tmpPt(1), tmpPt(2)) == robot_self_filter::INSIDE) {
-      m_octree->updateNode(it.getIndexKey(), m_octree->getProbMissContactSensorLog());
+      m_octree->updateNode(it.getKey(), m_octree->getProbMissContactSensorLog());
+      // m_octree->updateNode(it.getIndexKey(), m_octree->getProbMissContactSensorLog());
       // ROS_WARN_STREAM("Node center: " << it.getCoordinate());
       // ROS_WARN_STREAM("Node size: " << it.getSize());
       // ROS_WARN_STREAM("Node value: " << it->getValue());
@@ -339,24 +343,8 @@ void OctomapServer::insertContactSensor(){
   }
 }
 
-void OctomapServer::insertContactSensorCallback(const octomap_msgs::ContactSensorArrayConstPtr& msg){
-  ros::WallTime startTime = ros::WallTime::now();
-
-  // for(size_t i = 0; i < msg->datas.size(); i++) {}
-  for(std::vector<octomap_msgs::ContactSensor>::const_iterator it = msg->datas.begin(), end=msg->datas.end(); it!= end; ++it){
-    ROS_WARN_STREAM("Insert data of contact sensor [" << it->meshfile << "]");
-  }
-
-  octomap::point3d minPt(-100, -100, -100), maxPt(100, 100, 100);
-  OcTree::leaf_bbx_iterator it(m_octree, minPt, maxPt);
-
-  for(OcTree::leaf_bbx_iterator it = m_octree->begin_leafs_bbx(minPt, maxPt), end = m_octree->end_leafs_bbx(); it!= end; ++it)
-    {
-      // std::cout << "Node center: " << it.getCoordinate() << std::endl;
-      // std::cout << "Node size: " << it.getSize() << std::endl;
-      // std::cout << "Node value: " << it->getValue() << std::endl;
-      // std::cout << "Node depth: " << it.getDepth() << std::endl;
-    }
+void OctomapServer::insertContactSensorCallback(const octomap_msgs::ContactSensorArray::ConstPtr& msg){
+  insertContactSensor();
 }
 
 void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud){
@@ -451,7 +439,7 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
 
   insertScan(sensorToWorldTf.getOrigin(), pc_ground, pc_nonground);
 
-  insertContactSensor();
+  // insertContactSensor();
 
   double total_elapsed = (ros::WallTime::now() - startTime).toSec();
   ROS_DEBUG("Pointcloud insertion in OctomapServer done (%zu+%zu pts (ground/nonground), %f sec)", pc_ground.size(), pc_nonground.size(), total_elapsed);
