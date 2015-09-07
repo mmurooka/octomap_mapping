@@ -371,6 +371,7 @@ void OctomapServer::insertContactSensor(){
         point3d vertex;
         bool contain_flag = false;
         bool not_contain_flag = false;
+        bool break_flag = false;
         for (int i=0; i<2; i++) {
           if (i==1) { vertex_offset.z() += resolution; }
           for (int j=0; j<2; j++) {
@@ -386,14 +387,14 @@ void OctomapServer::insertContactSensor(){
                 not_contain_flag = true;
               }
               if (contain_flag && not_contain_flag) {
-                // break from loop
-                i = 2;
-                j = 2;
-                k = 2;
+                break_flag = true;
               }
+              if (break_flag) { break; }
             }
+            if (break_flag) { break; }
             vertex_offset.x() -= resolution;
           }
+          if (break_flag) { break; }
           vertex_offset.y() -= resolution;
         }
 
