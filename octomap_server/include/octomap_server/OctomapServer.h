@@ -227,6 +227,10 @@ protected:
 
   double m_pointcloudMinZ;
   double m_pointcloudMaxZ;
+  double m_pointcloudMinY;
+  double m_pointcloudMaxY;
+  double m_pointcloudMinX;
+  double m_pointcloudMaxX;
   double m_occupancyMinZ;
   double m_occupancyMaxZ;
   double m_minSizeX;
