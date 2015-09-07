@@ -402,10 +402,14 @@ void OctomapServer::insertContactSensor(){
         if (contain_flag) {
           if (not_contain_flag) {
             // todo : update probability
-            //std::cout << "surface grid position = " << p << std::endl;
+            // std::cout << "surface grid position = " << p << std::endl;
           } else {
             // todo : update probability
-            //std::cout << "inside grid position = " << p << std::endl;
+            // std::cout << "inside grid position = " << p << std::endl;
+            octomap::OcTreeKey pKey;
+            if (m_octree->coordToKeyChecked(p, pKey)) {
+              m_octree->updateNode(pKey, m_octree->getProbMissContactSensorLog());
+            }
           }
         }
 
