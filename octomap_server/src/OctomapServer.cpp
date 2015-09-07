@@ -303,30 +303,37 @@ void OctomapServer::insertContactSensor(){
   tmpHeader.stamp = ros::Time::now();
   m_selfMask->assumeFrame(tmpHeader);
 
-  octomap::point3d minPt(-100, -100, -100), maxPt(100, 100, 100);
-  OcTree::leaf_bbx_iterator it(m_octree, minPt, maxPt);
-  for(OcTree::leaf_bbx_iterator it = m_octree->begin_leafs_bbx(minPt, maxPt), end = m_octree->end_leafs_bbx(); it!= end; ++it)
-    {
-      octomap::point3d tmpPt = it.getCoordinate();
-      if (m_selfMask->getMaskContainment(tmpPt(0), tmpPt(1), tmpPt(2)) == robot_self_filter::INSIDE) {
-        m_octree->updateNode(it.getIndexKey(), m_octree->getProbMissContactSensorLog());
-        // ROS_WARN_STREAM("Node center: " << it.getCoordinate());
-        // ROS_WARN_STREAM("Node size: " << it.getSize());
-        // ROS_WARN_STREAM("Node value: " << it->getValue());
-        // ROS_WARN_STREAM("Node depth: " << it.getDepth());
+  // // iterate ver.1
+  // octomap::point3d minPt(-100, -100, -100), maxPt(100, 100, 100);
+  // OcTree::leaf_bbx_iterator it(m_octree, minPt, maxPt);
+  // ROS_WARN_STREAM("Start");
+  // for(OcTree::leaf_bbx_iterator it = m_octree->begin_leafs_bbx(minPt, maxPt), end = m_octree->end_leafs_bbx(); it!= end; ++it)
+  //   {
+  //     octomap::point3d tmpPt = it.getCoordinate();
+  //     if (m_selfMask->getMaskContainment(tmpPt(0), tmpPt(1), tmpPt(2)) == robot_self_filter::INSIDE) {
+  //       m_octree->updateNode(it.getIndexKey(), m_octree->getProbMissContactSensorLog());
+  //       // ROS_WARN_STREAM("Node center: " << it.getCoordinate());
+  //       // ROS_WARN_STREAM("Node size: " << it.getSize());
+  //       // ROS_WARN_STREAM("Node value: " << it->getValue());
+  //       // ROS_WARN_STREAM("Node depth: " << it.getDepth());
+  //     } else {
+  //     }
+  //   }
+
+  // // iterate ver.2
+  ROS_WARN_STREAM("Start");
+  for (OcTree::iterator it = m_octree->begin(m_maxTreeDepth), end = m_octree->end(); it != end; ++it)
+  {
+    octomap::point3d tmpPt = it.getCoordinate();
+    if (m_selfMask->getMaskContainment(tmpPt(0), tmpPt(1), tmpPt(2)) == robot_self_filter::INSIDE) {
+      m_octree->updateNode(it.getIndexKey(), m_octree->getProbMissContactSensorLog());
+      // ROS_WARN_STREAM("Node center: " << it.getCoordinate());
+      // ROS_WARN_STREAM("Node size: " << it.getSize());
+      // ROS_WARN_STREAM("Node value: " << it->getValue());
+      // ROS_WARN_STREAM("Node depth: " << it.getDepth());
       } else {
       }
-    }
-
-  // ROS_WARN_STREAM("Start");
-  // for (OcTree::iterator it = m_octree->begin(m_maxTreeDepth), end = m_octree->end(); it != end; ++it)
-  // {
-  //   ROS_WARN_STREAM("Node center: " << it.getCoordinate());
-  //   ROS_WARN_STREAM("Node size: " << it.getSize());
-  //   ROS_WARN_STREAM("Node value: " << it->getValue());
-  //   ROS_WARN_STREAM("Node depth: " << it.getDepth());
-  // }
-
+  }
 }
 
 void OctomapServer::insertContactSensorCallback(const octomap_msgs::ContactSensorArrayConstPtr& msg){
