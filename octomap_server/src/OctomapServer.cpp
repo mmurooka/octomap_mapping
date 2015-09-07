@@ -317,6 +317,16 @@ void OctomapServer::insertContactSensor(){
       } else {
       }
     }
+
+  // ROS_WARN_STREAM("Start");
+  // for (OcTree::iterator it = m_octree->begin(m_maxTreeDepth), end = m_octree->end(); it != end; ++it)
+  // {
+  //   ROS_WARN_STREAM("Node center: " << it.getCoordinate());
+  //   ROS_WARN_STREAM("Node size: " << it.getSize());
+  //   ROS_WARN_STREAM("Node value: " << it->getValue());
+  //   ROS_WARN_STREAM("Node depth: " << it.getDepth());
+  // }
+
 }
 
 void OctomapServer::insertContactSensorCallback(const octomap_msgs::ContactSensorArrayConstPtr& msg){
