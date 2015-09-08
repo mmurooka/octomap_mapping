@@ -171,8 +171,8 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_tfPointCloudSub = new tf::MessageFilter<sensor_msgs::PointCloud2> (*m_pointCloudSub, m_tfListener, m_worldFrameId, 5);
   m_tfPointCloudSub->registerCallback(boost::bind(&OctomapServer::insertCloudCallback, this, _1));
 
-  m_contactSensorSub = new message_filters::Subscriber<octomap_msgs::ContactSensorArray> (m_nh, "contact_sensors_in", 5);
-  m_tfContactSensorSub = new tf::MessageFilter<octomap_msgs::ContactSensorArray> (*m_contactSensorSub, m_tfListener, m_worldFrameId, 5);
+  m_contactSensorSub = new message_filters::Subscriber<octomap_msgs::ContactSensorArray> (m_nh, "contact_sensors_in", 20);
+  m_tfContactSensorSub = new tf::MessageFilter<octomap_msgs::ContactSensorArray> (*m_contactSensorSub, m_tfListener, m_worldFrameId, 20);
   m_tfContactSensorSub->registerCallback(boost::bind(&OctomapServer::insertContactSensorCallback, this, _1));
 
   m_octomapBinaryService = m_nh.advertiseService("octomap_binary", &OctomapServer::octomapBinarySrv, this);
@@ -411,6 +411,16 @@ void OctomapServer::insertContactSensor(std::vector<octomap_msgs::ContactSensor>
           if (contain_flag[l]) {
             if (not_contain_flag[l]) {
               // std::cout << "surface grid position = " << p << std::endl;
+              octomap::OcTreeKey pKey;
+              if (m_octree->coordToKeyChecked(p, pKey)) {
+                if(datas[l].contact) {
+                  m_octree->updateNode(pKey, m_octree->getProbHitContactSensorLog());
+                }
+                // std::cout << "find surface grid and find key. p = " << vertex << std::endl;
+                // std::cout << "contact: " << (bool)(datas[l].contact) << "  link_name: " << datas[l].link_name << std::endl;
+              } else {
+                // std::cout << "find surface grid but not find key. p = " << vertex << std::endl;
+              }
             } else {
               // std::cout << "inside grid position = " << p << std::endl;
               octomap::OcTreeKey pKey;
