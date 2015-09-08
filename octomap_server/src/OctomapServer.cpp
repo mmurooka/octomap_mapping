@@ -41,7 +41,7 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_octree(NULL),
   m_maxRange(-1.0),
   m_worldFrameId("/map"), m_baseFrameId("base_footprint"),
-  m_useHeightMap(true),
+  m_useHeightMap(false),
   m_colorFactor(0.8),
   m_latchedTopics(true),
   m_publishFreeSpace(false),
@@ -123,9 +123,9 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_gridmap.info.resolution = m_res;
 
   double r, g, b, a;
-  private_nh.param("color/r", r, 0.0);
+  private_nh.param("color/r", r, 1.0);
   private_nh.param("color/g", g, 0.0);
-  private_nh.param("color/b", b, 1.0);
+  private_nh.param("color/b", b, 0.0);
   private_nh.param("color/a", a, 1.0);
   m_color.r = r;
   m_color.g = g;
@@ -140,6 +140,15 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_colorFree.g = g;
   m_colorFree.b = b;
   m_colorFree.a = a;
+
+  private_nh.param("color_unknown/r", r, 0.5);
+  private_nh.param("color_unknown/g", g, 0.5);
+  private_nh.param("color_unknown/b", b, 0.7);
+  private_nh.param("color_unknown/a", a, 1.0);
+  m_colorUnknown.r = r;
+  m_colorUnknown.g = g;
+  m_colorUnknown.b = b;
+  m_colorUnknown.a = a;
 
   private_nh.param("publish_free_space", m_publishFreeSpace, m_publishFreeSpace);
 
@@ -343,8 +352,9 @@ void OctomapServer::insertContactSensor(){
   // }
 
   // iterate ver.3
-  double offset = m_offsetVisualizeUnknown;
   // todo : get range from link bbox
+  double offset = 0;
+  // double offset = m_offsetVisualizeUnknown;
   point3d pmin( m_pointcloudMinX + offset, m_pointcloudMinY + offset, m_pointcloudMinZ + offset);
   point3d pmax( m_pointcloudMaxX - offset, m_pointcloudMaxY - offset, m_pointcloudMaxZ - offset);
   float diff[3];
@@ -401,23 +411,26 @@ void OctomapServer::insertContactSensor(){
         // update probability of grid
         if (contain_flag) {
           if (not_contain_flag) {
-            // todo : update probability
             // std::cout << "surface grid position = " << p << std::endl;
           } else {
-            // todo : update probability
             // std::cout << "inside grid position = " << p << std::endl;
             octomap::OcTreeKey pKey;
             if (m_octree->coordToKeyChecked(p, pKey)) {
               m_octree->updateNode(pKey, m_octree->getProbMissContactSensorLog());
+              // std::cout << "find inside grid and find key. p = " << vertex << std::endl;
+            } else {
+              // std::cout << "find inside grid but not find key. p = " << vertex << std::endl;
             }
           }
         }
+
 
       }
       p.z() = pmin.z();
     }
     p.y() = pmin.y();
   }
+  m_octree->updateInnerOccupancy();
 }
 
 void OctomapServer::insertContactSensorCallback(const octomap_msgs::ContactSensorArray::ConstPtr& msg){
@@ -854,7 +867,7 @@ void OctomapServer::publishAll(const ros::Time& rostime){
   unknownNodesVis.markers[0].scale.x = size;
   unknownNodesVis.markers[0].scale.y = size;
   unknownNodesVis.markers[0].scale.z = size;
-  unknownNodesVis.markers[0].color = m_colorFree;
+  unknownNodesVis.markers[0].color = m_colorUnknown;
   
   if (unknownNodesVis.markers[0].points.size() > 0)
     unknownNodesVis.markers[0].action = visualization_msgs::Marker::ADD;

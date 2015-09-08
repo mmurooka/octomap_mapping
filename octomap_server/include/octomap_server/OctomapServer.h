@@ -214,6 +214,7 @@ protected:
   bool m_useHeightMap;
   std_msgs::ColorRGBA m_color;
   std_msgs::ColorRGBA m_colorFree;
+  std_msgs::ColorRGBA m_colorUnknown;
   double m_colorFactor;
 
   bool m_latchedTopics;
