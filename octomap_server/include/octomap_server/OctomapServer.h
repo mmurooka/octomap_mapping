@@ -88,7 +88,7 @@ public:
 
   virtual void insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud);
   void initContactSensor(ros::NodeHandle private_nh_);
-  void insertContactSensor();
+  void insertContactSensor(std::vector<octomap_msgs::ContactSensor> datas);
   virtual void insertContactSensorCallback(const octomap_msgs::ContactSensorArray::ConstPtr& msg);
   virtual bool openFile(const std::string& filename);
 

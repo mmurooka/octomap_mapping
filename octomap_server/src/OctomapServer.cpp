@@ -311,7 +311,7 @@ void OctomapServer::initContactSensor(ros::NodeHandle private_nh_){
   m_selfMask = new robot_self_filter::SelfMask<pcl::PointXYZ>(m_tfListener, links);
 }
 
-void OctomapServer::insertContactSensor(){
+void OctomapServer::insertContactSensor(std::vector<octomap_msgs::ContactSensor> datas){
   ROS_WARN_STREAM("insert contact sensor");
 
   std_msgs::Header tmpHeader;
@@ -379,9 +379,10 @@ void OctomapServer::insertContactSensor(){
         // loop for vertices of each gird
         point3d vertex_offset(-resolution/2.0, -resolution/2.0, -resolution/2.0);
         point3d vertex;
-        bool contain_flag = false;
-        bool not_contain_flag = false;
-        bool break_flag = false;
+        std::vector<bool> contain_flag(datas.size());
+        std::vector<bool> not_contain_flag(datas.size());
+        std::fill(contain_flag.begin(), contain_flag.end(), false);
+        std::fill(not_contain_flag.begin(), not_contain_flag.end(), false);
         for (int i=0; i<2; i++) {
           if (i==1) { vertex_offset.z() += resolution; }
           for (int j=0; j<2; j++) {
@@ -390,40 +391,38 @@ void OctomapServer::insertContactSensor(){
               if(k==1) { vertex_offset.x() += resolution; }
               vertex = p + vertex_offset;
               // std::cout << "vertex = " << vertex << std::endl;
-              if (m_selfMask->getMaskContainment(vertex(0), vertex(1), vertex(2)) == robot_self_filter::INSIDE) {
-                // std::cout << "inside vertex = " << vertex << std::endl;
-                contain_flag = true;
-              } else {
-                not_contain_flag = true;
+              // loop for each body link
+              for (int l=0; l<datas.size(); l++) {
+                if (m_selfMask->getMaskContainmentforNamedLink(vertex(0), vertex(1), vertex(2), datas[l].link_name) == robot_self_filter::INSIDE) {
+                  // std::cout << "inside vertex = " << vertex << std::endl;
+                  contain_flag[l] = true;
+                } else {
+                  not_contain_flag[l] = true;
+                }
               }
-              if (contain_flag && not_contain_flag) {
-                break_flag = true;
-              }
-              if (break_flag) { break; }
             }
-            if (break_flag) { break; }
             vertex_offset.x() -= resolution;
           }
-          if (break_flag) { break; }
           vertex_offset.y() -= resolution;
         }
 
         // update probability of grid
-        if (contain_flag) {
-          if (not_contain_flag) {
-            // std::cout << "surface grid position = " << p << std::endl;
-          } else {
-            // std::cout << "inside grid position = " << p << std::endl;
-            octomap::OcTreeKey pKey;
-            if (m_octree->coordToKeyChecked(p, pKey)) {
-              m_octree->updateNode(pKey, m_octree->getProbMissContactSensorLog());
-              // std::cout << "find inside grid and find key. p = " << vertex << std::endl;
+        for (int l=0; l<datas.size(); l++) {
+          if (contain_flag[l]) {
+            if (not_contain_flag[l]) {
+              // std::cout << "surface grid position = " << p << std::endl;
             } else {
-              // std::cout << "find inside grid but not find key. p = " << vertex << std::endl;
+              // std::cout << "inside grid position = " << p << std::endl;
+              octomap::OcTreeKey pKey;
+              if (m_octree->coordToKeyChecked(p, pKey)) {
+                m_octree->updateNode(pKey, m_octree->getProbMissContactSensorLog());
+                // std::cout << "find inside grid and find key. p = " << vertex << std::endl;
+              } else {
+                // std::cout << "find inside grid but not find key. p = " << vertex << std::endl;
+              }
             }
           }
         }
-
 
       }
       p.z() = pmin.z();
@@ -434,7 +433,8 @@ void OctomapServer::insertContactSensor(){
 }
 
 void OctomapServer::insertContactSensorCallback(const octomap_msgs::ContactSensorArray::ConstPtr& msg){
-  insertContactSensor();
+  std::vector<octomap_msgs::ContactSensor> datas = msg->datas;
+  insertContactSensor(datas);
 }
 
 void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud){
@@ -528,8 +528,6 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
 
 
   insertScan(sensorToWorldTf.getOrigin(), pc_ground, pc_nonground);
-
-  // insertContactSensor();
 
   double total_elapsed = (ros::WallTime::now() - startTime).toSec();
   ROS_DEBUG("Pointcloud insertion in OctomapServer done (%zu+%zu pts (ground/nonground), %f sec)", pc_ground.size(), pc_nonground.size(), total_elapsed);
