@@ -35,7 +35,7 @@
     <param name="robot_description" textfile="$(find hrpsys_gazebo_tutorials)/environment_models/Cube/Cube.urdf" />
 
     <!-- Sensor Input PassThrough Filter Params -->
-    <param name="pointcloud_min_z" value="0.05" />
+    <param name="pointcloud_min_z" value="0.00" />
     <param name="pointcloud_max_z" value="1.5" />
     <param name="pointcloud_min_y" value="-2" />
     <param name="pointcloud_max_y" value="2" />
