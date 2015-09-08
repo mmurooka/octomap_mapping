@@ -7,6 +7,7 @@
   www.ros.org/wiki/octomap_server for details
 -->
 <launch>
+  <!-- <arg name="input" default="/tilt_scan_shadow_filtered"/> -->
   <arg name="input" default="/kinect_head_c2/depth_registered/points"/>
   <arg name="frame_id" default="base_footprint"/>
 
@@ -20,7 +21,8 @@
 
   <node pkg="octomap_server" type="octomap_server_node" name="octomap_server"
         output="screen">
-    <param name="resolution" value="0.05" />
+    <!-- <param name="resolution" value="0.05" /> -->
+    <param name="resolution" value="0.015" />
 
     <!-- fixed map frame (set to 'map' if SLAM or localization running!) -->
     <param name="frame_id" type="string" value="$(arg frame_id)"/>
@@ -37,12 +39,18 @@
     <param name="robot_description"  command="$(find xacro)/xacro.py '$(find pr2_description)/robots/pr2.urdf.xacro'" />
 
     <!-- Sensor Input PassThrough Filter Params -->
-    <param name="pointcloud_min_z" value="0.00" />
-    <param name="pointcloud_max_z" value="1.5" />
-    <param name="pointcloud_min_y" value="-2" />
-    <param name="pointcloud_max_y" value="2" />
-    <param name="pointcloud_min_x" value="-2" />
-    <param name="pointcloud_max_x" value="2" />
+    <!-- <param name="pointcloud_min_z" value="0.00" /> -->
+    <!-- <param name="pointcloud_max_z" value="1.5" /> -->
+    <!-- <param name="pointcloud_min_y" value="-2" /> -->
+    <!-- <param name="pointcloud_max_y" value="2" /> -->
+    <!-- <param name="pointcloud_min_x" value="-2" /> -->
+    <!-- <param name="pointcloud_max_x" value="2" /> -->
+    <param name="pointcloud_min_z" value="0.6" />
+    <param name="pointcloud_max_z" value="1.6" />
+    <param name="pointcloud_min_y" value="-0.6" />
+    <param name="pointcloud_max_y" value="0.6" />
+    <param name="pointcloud_min_x" value="0.3" />
+    <param name="pointcloud_max_x" value="1.0" />
   </node>
 
   <node pkg="octomap_server" type="pr2_contact_sensor.py" name="test_contact_sensor"

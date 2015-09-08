@@ -14,7 +14,8 @@ if __name__ == '__main__':
         msg.header = Header(frame_id="/base_footprint", stamp=rospy.Time.now())
         l_gripper_palm_link_sensor = ContactSensor(header=Header(frame_id="/base_footprint", stamp=rospy.Time.now()), contact=False, link_name='l_gripper_palm_link')
         l_gripper_l_finger_link_sensor = ContactSensor(header=Header(frame_id="/base_footprint", stamp=rospy.Time.now()), contact=False, link_name='l_gripper_l_finger_link')
-        l_gripper_r_finger_link = ContactSensor(header=Header(frame_id="/base_footprint", stamp=rospy.Time.now()), contact=False, link_name='l_gripper_r_finger_link')
-        msg.datas = [l_gripper_palm_link_sensor, l_gripper_l_finger_link_sensor, l_gripper_r_finger_link]
+        l_gripper_r_finger_link_sensor = ContactSensor(header=Header(frame_id="/base_footprint", stamp=rospy.Time.now()), contact=False, link_name='l_gripper_r_finger_link')
+        l_forearm_link_sensor = ContactSensor(header=Header(frame_id="/base_footprint", stamp=rospy.Time.now()), contact=False, link_name='l_forearm_link')
+        msg.datas = [l_gripper_palm_link_sensor, l_gripper_l_finger_link_sensor, l_gripper_r_finger_link_sensor, l_forearm_link_sensor]
         contact_sensor_array_pub.publish(msg)
         r.sleep()

@@ -5,3 +5,4 @@ self_see_links:
   - name: l_gripper_palm_link
   - name: l_gripper_l_finger_link
   - name: l_gripper_r_finger_link
+  - name: l_forearm_link
