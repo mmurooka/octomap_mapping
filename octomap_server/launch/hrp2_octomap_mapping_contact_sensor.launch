@@ -7,7 +7,7 @@
   www.ros.org/wiki/octomap_server for details
 -->
 <launch>
-  <!-- <arg name="input" default="/tilt_scan_shadow_filtered"/> -->
+  <arg name="ROBOT" default="HRP2JSKNT"/>
   <arg name="input" default="/xtion/depth/points"/>
   <arg name="frame_id" default="base_footprint"/>
 
@@ -34,18 +34,29 @@
 
     <rosparam command="load" file="$(find octomap_server)/config/hrp2_contact_sensor_config.yaml" />
 
-    <!-- <param name="robot_description" textfile="$(find hrpsys_gazebo_tutorials)/environment_models/Cube/Cube.urdf" /> -->
-    <param name="robot_description"  command="$(find xacro)/xacro.py '$(find hrpsys_gazebo_tutorials)/robot_models/HRP2JSKNT/HRP2JSKNT.urdf.xacro'" />
+    <param name="robot_description"  command="$(find xacro)/xacro.py '$(find hrpsys_gazebo_tutorials)/robot_models/$(arg ROBOT)/$(arg ROBOT).urdf.xacro'" />
 
     <param name="resolution" value="0.015" />
 
     <!-- Sensor Input PassThrough Filter Params -->
-    <param name="pointcloud_min_z" value="0.2" />
+    <param name="occupancy_min_x" value="0.3" />
+    <param name="occupancy_max_x" value="0.6" />
+    <param name="occupancy_min_y" value="0.0" />
+    <param name="occupancy_max_y" value="0.3" />
+    <param name="occupancy_min_z" value="0.2" />
+    <param name="occupancy_max_z" value="0.5" />
+    <param name="pointcloud_min_x" value="0.0" />
+    <param name="pointcloud_max_x" value="2.0" />
+    <param name="pointcloud_min_y" value="-1.0" />
+    <param name="pointcloud_max_y" value="1.0" />
+    <param name="pointcloud_min_z" value="-1.0" />
     <param name="pointcloud_max_z" value="0.5" />
-    <param name="pointcloud_min_y" value="0.0" />
-    <param name="pointcloud_max_y" value="0.3" />
-    <param name="pointcloud_min_x" value="0.3" />
-    <param name="pointcloud_max_x" value="0.6" />
+    <!-- <param name="pointcloud_min_x" value="0.3" /> -->
+    <!-- <param name="pointcloud_max_x" value="0.6" /> -->
+    <!-- <param name="pointcloud_min_y" value="0.0" /> -->
+    <!-- <param name="pointcloud_max_y" value="0.3" /> -->
+    <!-- <param name="pointcloud_min_z" value="0.2" /> -->
+    <!-- <param name="pointcloud_max_z" value="0.5" /> -->
     <param name="offset_vis_unknown" value="0" />
   </node>
 
@@ -56,8 +67,7 @@
 
 
   <group ns="planner">
-    <!-- <param name="robot_description" textfile="$(find hrpsys_gazebo_tutorials)/environment_models/Cube/Cube.urdf" /> -->
-    <param name="robot_description"  command="$(find xacro)/xacro.py '$(find hrpsys_gazebo_tutorials)/robot_models/HRP2JSKNT/HRP2JSKNT.urdf.xacro'" />
+    <param name="robot_description"  command="$(find xacro)/xacro.py '$(find hrpsys_gazebo_tutorials)/robot_models/$(arg ROBOT)/$(arg ROBOT).urdf.xacro'" />
 
     <node pkg="robot_state_publisher" type="state_publisher" name="robot_state_publisher" >
       <param name="tf_prefix" type="string" value="planner" />

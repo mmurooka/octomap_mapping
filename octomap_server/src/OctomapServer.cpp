@@ -82,6 +82,10 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   private_nh.param("pointcloud_max_y", m_pointcloudMaxY,m_pointcloudMaxY);
   private_nh.param("pointcloud_min_x", m_pointcloudMinX,m_pointcloudMinX);
   private_nh.param("pointcloud_max_x", m_pointcloudMaxX,m_pointcloudMaxX);
+  private_nh.param("occupancy_min_x", m_occupancyMinX,m_occupancyMinX);
+  private_nh.param("occupancy_max_x", m_occupancyMaxX,m_occupancyMaxX);
+  private_nh.param("occupancy_min_y", m_occupancyMinY,m_occupancyMinY);
+  private_nh.param("occupancy_max_y", m_occupancyMaxY,m_occupancyMaxY);
   private_nh.param("occupancy_min_z", m_occupancyMinZ,m_occupancyMinZ);
   private_nh.param("occupancy_max_z", m_occupancyMaxZ,m_occupancyMaxZ);
   private_nh.param("min_x_size", m_minSizeX,m_minSizeX);
@@ -327,8 +331,8 @@ void OctomapServer::insertContactSensor(std::vector<octomap_msgs::ContactSensor>
 
   double offset = 0;
   // double offset = m_offsetVisualizeUnknown;
-  point3d pmin( m_pointcloudMinX + offset, m_pointcloudMinY + offset, m_pointcloudMinZ + offset);
-  point3d pmax( m_pointcloudMaxX - offset, m_pointcloudMaxY - offset, m_pointcloudMaxZ - offset);
+  point3d pmin( m_occupancyMinX + offset, m_occupancyMinY + offset, m_occupancyMinZ + offset);
+  point3d pmax( m_occupancyMaxX - offset, m_occupancyMaxY - offset, m_occupancyMaxZ - offset);
   float diff[3];
   unsigned int steps[3];
   double resolution = m_octree->getResolution();
@@ -441,15 +445,14 @@ void OctomapServer::insertContactSensor(std::vector<octomap_msgs::ContactSensor>
             octomap::OcTreeKey pKey;
             if (m_octree->coordToKeyChecked(p, pKey)) {
               OcTreeNode* tmpNode = m_octree->search(pKey);
-              if (tmpNode == NULL || m_octree->isNodeOccupied(tmpNode)) {
-                // occupied
-                std::cout << "link ( " << datas[l].link_name << " ) is inside of occupied region." << std::endl;
-              } else if (m_octree->isNodeFree(tmpNode)) {
-                // free
-
-              } else {
+              if (tmpNode == NULL || m_octree->isNodeUnknown(tmpNode)) {
                 // unknown
                 std::cout << "link ( " << datas[l].link_name << " ) is inside of unknown region." << std::endl;
+              } else if (m_octree->isNodeOccupied(tmpNode)) {
+                // occupied
+                std::cout << "link ( " << datas[l].link_name << " ) is inside of occupied region." << std::endl;
+              } else {
+                // free
               }
               // std::cout << "find inside grid and find key. p = " << vertex << std::endl;
             }
@@ -739,8 +742,10 @@ void OctomapServer::publishAll(const ros::Time& rostime){
       handleNodeInBBX(it);
 
     if (m_octree->isNodeOccupied(*it)){
+      double x = it.getX();
+      double y = it.getY();
       double z = it.getZ();
-      if (z > m_occupancyMinZ && z < m_occupancyMaxZ)
+      if (x > m_occupancyMinX && x < m_occupancyMaxX && y > m_occupancyMinY && y < m_occupancyMaxY && z > m_occupancyMinZ && z < m_occupancyMaxZ)
       {
         double size = it.getSize();
         double x = it.getX();
@@ -784,8 +789,10 @@ void OctomapServer::publishAll(const ros::Time& rostime){
 
       }
     } else{ // node not occupied => mark as free in 2D map if unknown so far
+      double x = it.getX();
+      double y = it.getY();
       double z = it.getZ();
-      if (z > m_occupancyMinZ && z < m_occupancyMaxZ)
+      if (x > m_occupancyMinX && x < m_occupancyMaxX && y > m_occupancyMinY && y < m_occupancyMaxY && z > m_occupancyMinZ && z < m_occupancyMaxZ)
       {
         handleFreeNode(it);
         if (inUpdateBBX)
@@ -872,8 +879,8 @@ void OctomapServer::publishAll(const ros::Time& rostime){
 
   point3d_list unknown_leaves;
   double offset = m_offsetVisualizeUnknown;
-  point3d p_min( m_pointcloudMinX + offset, m_pointcloudMinY + offset, m_pointcloudMinZ + offset);
-  point3d p_max( m_pointcloudMaxX - offset, m_pointcloudMaxY - offset, m_pointcloudMaxZ - offset);
+  point3d p_min( m_occupancyMinX + offset, m_occupancyMinY + offset, m_occupancyMinZ + offset);
+  point3d p_max( m_occupancyMaxX - offset, m_occupancyMaxY - offset, m_occupancyMaxZ - offset);
 
   m_octree->getUnknownLeafCenters(unknown_leaves, p_min, p_max);
   pcl::PointCloud<pcl::PointXYZ> unknownCloud;
