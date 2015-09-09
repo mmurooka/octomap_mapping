@@ -317,50 +317,14 @@ void OctomapServer::initContactSensor(ros::NodeHandle private_nh_){
     }
   }
   m_selfMask = new robot_self_filter::SelfMask<pcl::PointXYZ>(m_tfListener, links);
+  m_selfMaskPlanner = new robot_self_filter::SelfMask<pcl::PointXYZ>(m_tfListener, links, "planner/");
 }
 
 void OctomapServer::insertContactSensor(std::vector<octomap_msgs::ContactSensor> datas){
-  ROS_WARN_STREAM("insert contact sensor");
-
   std_msgs::Header tmpHeader;
   tmpHeader.frame_id = m_worldFrameId;
   tmpHeader.stamp = ros::Time::now();
-  m_selfMask->assumeFrame(tmpHeader);
 
-  // // iterate ver.1
-  // octomap::point3d minPt(-100, -100, -100), maxPt(100, 100, 100);
-  // OcTree::leaf_bbx_iterator it(m_octree, minPt, maxPt);
-  // ROS_WARN_STREAM("Start");
-  // for(OcTree::leaf_bbx_iterator it = m_octree->begin_leafs_bbx(minPt, maxPt), end = m_octree->end_leafs_bbx(); it!= end; ++it)
-  //   {
-  //     octomap::point3d tmpPt = it.getCoordinate();
-  //     if (m_selfMask->getMaskContainment(tmpPt(0), tmpPt(1), tmpPt(2)) == robot_self_filter::INSIDE) {
-  //       m_octree->updateNode(it.getIndexKey(), m_octree->getProbMissContactSensorLog());
-  //       // ROS_WARN_STREAM("Node center: " << it.getCoordinate());
-  //       // ROS_WARN_STREAM("Node size: " << it.getSize());
-  //       // ROS_WARN_STREAM("Node value: " << it->getValue());
-  //       // ROS_WARN_STREAM("Node depth: " << it.getDepth());
-  //     } else {
-  //     }
-  //   }
-
-  // iterate ver.2
-  // for (OcTree::iterator it = m_octree->begin(m_maxTreeDepth), end = m_octree->end(); it != end; ++it)
-  // {
-  //   octomap::point3d tmpPt = it.getCoordinate();
-  //   if (m_selfMask->getMaskContainment(tmpPt(0), tmpPt(1), tmpPt(2)) == robot_self_filter::INSIDE) {
-  //     m_octree->updateNode(it.getKey(), m_octree->getProbMissContactSensorLog());
-  //     // m_octree->updateNode(it.getIndexKey(), m_octree->getProbMissContactSensorLog());
-  //     // ROS_WARN_STREAM("Node center: " << it.getCoordinate());
-  //     // ROS_WARN_STREAM("Node size: " << it.getSize());
-  //     // ROS_WARN_STREAM("Node value: " << it->getValue());
-  //     // ROS_WARN_STREAM("Node depth: " << it.getDepth());
-  //     } else {
-  //     }
-  // }
-
-  // iterate ver.3
-  // todo : get range from link bbox
   double offset = 0;
   // double offset = m_offsetVisualizeUnknown;
   point3d pmin( m_pointcloudMinX + offset, m_pointcloudMinY + offset, m_pointcloudMinZ + offset);
@@ -374,8 +338,14 @@ void OctomapServer::insertContactSensor(std::vector<octomap_msgs::ContactSensor>
     //      std::cout << "bbx " << i << " size: " << diff[i] << " " << steps[i] << " steps\n";
   }
 
+  ROS_WARN_STREAM("insert contact sensor and update map");
+
+  m_selfMask->assumeFrame(tmpHeader);
+  m_selfMaskPlanner->assumeFrame(tmpHeader);
+
   // loop for grids of octomap
   std::vector< std::vector<bool> > contain_flag(datas.size(), std::vector<bool>(8));
+  std::vector< std::vector<bool> > contain_flag_planner(datas.size(), std::vector<bool>(8));
   point3d p = pmin;
   for (unsigned int x=0; x<steps[0]; ++x) {
     p.x() += resolution;
@@ -403,6 +373,12 @@ void OctomapServer::insertContactSensor(std::vector<octomap_msgs::ContactSensor>
                   contain_flag[l][i+j*2+k*4] = true;
                 } else {
                   contain_flag[l][i+j*2+k*4] = false;
+                }
+                if (m_selfMaskPlanner->getMaskContainmentforNamedLink(vertex(0), vertex(1), vertex(2), datas[l].link_name) == robot_self_filter::INSIDE) {
+                  // std::cout << "inside vertex = " << vertex << std::endl;
+                  contain_flag_planner[l][i+j*2+k*4] = true;
+                } else {
+                  contain_flag_planner[l][i+j*2+k*4] = false;
                 }
               }
             }
@@ -435,20 +411,44 @@ void OctomapServer::insertContactSensor(std::vector<octomap_msgs::ContactSensor>
             }
           }
         }
-        // inside
-        if(inside_flag) {
+        if(inside_flag) { // inside
           octomap::OcTreeKey pKey;
           if (m_octree->coordToKeyChecked(p, pKey)) {
             m_octree->updateNode(pKey, m_octree->getProbMissContactSensorLog());
             // std::cout << "find inside grid and find key. p = " << vertex << std::endl;
           }
         }
-        // surface
-        else if(surface_flag) {
+        else if(surface_flag) { // surface
           octomap::OcTreeKey pKey;
           if (m_octree->coordToKeyChecked(p, pKey)) {
             m_octree->updateNode(pKey, m_octree->getProbHitContactSensorLog());
             // std::cout << "find surface grid and find key. p = " << vertex << std::endl;
+          }
+        }
+
+        // check collision for planner
+        std::vector<bool> contain_flag_vertices_prod_planner(datas.size(), true);
+        for (int l=0; l<datas.size(); l++) {
+          for (int i=0; i<8; i++) {
+            if(contain_flag_planner[l][i]) {
+            } else {
+              contain_flag_vertices_prod_planner[l] = false;
+            }
+          }
+        }
+        for (int l=0; l<datas.size(); l++) {
+          if(contain_flag_vertices_prod_planner[l]) {
+            std::cout << "p ( " << p << " ) is inside of link ( " << datas[l].link_name << " ) " << std::endl;
+            octomap::OcTreeKey pKey;
+            if (m_octree->coordToKeyChecked(p, pKey)) {
+              OcTreeNode* tmpNode = m_octree->search(pKey);
+              if (tmpNode != NULL) {
+                if (m_octree->isNodeOccupied(tmpNode)) {
+
+                }
+              }
+              // std::cout << "find inside grid and find key. p = " << vertex << std::endl;
+            }
           }
         }
 

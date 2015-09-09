@@ -70,6 +70,15 @@
 #include <pr2_navigation_self_filter/self_mask.h>
 
 namespace octomap_server {
+  enum
+  {
+    FEASIBLE_POSE = 0,
+    SAFE_POSE = 1,
+    SAFE_POSE2 = 2,
+    UNSAFE_POSE = 3,
+    INFEASIBLE_POSE = 4,
+  };
+
 class OctomapServer {
 
 public:
@@ -263,6 +272,7 @@ protected:
   bool m_projectCompleteMap;
 
   robot_self_filter::SelfMask<pcl::PointXYZ>* m_selfMask;
+  robot_self_filter::SelfMask<pcl::PointXYZ>* m_selfMaskPlanner;
   double min_sensor_dist_;
 
   bool m_disableCloud;
