@@ -28,6 +28,7 @@
  */
 
 #include <octomap_server/OctomapServer.h>
+#include <algorithm>
 
 using namespace octomap;
 using octomap_msgs::Octomap;
@@ -163,7 +164,7 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_fullMapPub = m_nh.advertise<Octomap>("octomap_full", 1, m_latchedTopics);
   m_unknownPointCloudPub = m_nh.advertise<sensor_msgs::PointCloud2>("octomap_unknown_point_cloud_centers", 1, m_latchedTopics);
   m_pointCloudPub = m_nh.advertise<sensor_msgs::PointCloud2>("octomap_point_cloud_centers", 1, m_latchedTopics);
-  m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("projected_map", 5, m_latchedTopics);	
+  m_mapPub = m_nh.advertise<nav_msgs::OccupancyGrid>("projected_map", 5, m_latchedTopics);
   m_fmarkerPub = m_nh.advertise<visualization_msgs::MarkerArray>("free_cells_vis_array", 1, m_latchedTopics);
   m_umarkerPub = m_nh.advertise<visualization_msgs::MarkerArray>("unknown_cells_vis_array", 1, m_latchedTopics);
 
@@ -367,6 +368,7 @@ void OctomapServer::insertContactSensor(std::vector<octomap_msgs::ContactSensor>
   }
 
   // loop for grids of octomap
+  std::vector< std::vector<bool> > contain_flag(datas.size(), std::vector<bool>(8));
   point3d p = pmin;
   for (unsigned int x=0; x<steps[0]; ++x) {
     p.x() += resolution;
@@ -379,10 +381,6 @@ void OctomapServer::insertContactSensor(std::vector<octomap_msgs::ContactSensor>
         // loop for vertices of each gird
         point3d vertex_offset(-resolution/2.0, -resolution/2.0, -resolution/2.0);
         point3d vertex;
-        std::vector<bool> contain_flag(datas.size());
-        std::vector<bool> not_contain_flag(datas.size());
-        std::fill(contain_flag.begin(), contain_flag.end(), false);
-        std::fill(not_contain_flag.begin(), not_contain_flag.end(), false);
         for (int i=0; i<2; i++) {
           if (i==1) { vertex_offset.z() += resolution; }
           for (int j=0; j<2; j++) {
@@ -395,9 +393,9 @@ void OctomapServer::insertContactSensor(std::vector<octomap_msgs::ContactSensor>
               for (int l=0; l<datas.size(); l++) {
                 if (m_selfMask->getMaskContainmentforNamedLink(vertex(0), vertex(1), vertex(2), datas[l].link_name) == robot_self_filter::INSIDE) {
                   // std::cout << "inside vertex = " << vertex << std::endl;
-                  contain_flag[l] = true;
+                  contain_flag[l][i+j*2+k*4] = true;
                 } else {
-                  not_contain_flag[l] = true;
+                  contain_flag[l][i+j*2+k*4] = false;
                 }
               }
             }
@@ -407,30 +405,43 @@ void OctomapServer::insertContactSensor(std::vector<octomap_msgs::ContactSensor>
         }
 
         // update probability of grid
+        std::vector<bool> contain_flag_link_sum(8, false);
+        std::vector<bool> contain_flag_vertices_sum(datas.size(), false);
+        std::vector<bool> contain_flag_vertices_prod(datas.size(), true);
+        bool inside_flag = false;
+        bool surface_flag = false;
         for (int l=0; l<datas.size(); l++) {
-          if (contain_flag[l]) {
-            if (not_contain_flag[l]) {
-              // std::cout << "surface grid position = " << p << std::endl;
-              octomap::OcTreeKey pKey;
-              if (m_octree->coordToKeyChecked(p, pKey)) {
-                if(datas[l].contact) {
-                  m_octree->updateNode(pKey, m_octree->getProbHitContactSensorLog());
-                }
-                // std::cout << "find surface grid and find key. p = " << vertex << std::endl;
-                // std::cout << "contact: " << (bool)(datas[l].contact) << "  link_name: " << datas[l].link_name << std::endl;
-              } else {
-                // std::cout << "find surface grid but not find key. p = " << vertex << std::endl;
-              }
+          for (int i=0; i<8; i++) {
+            if(contain_flag[l][i]) {
+              contain_flag_link_sum[i] = true;
+              contain_flag_vertices_sum[l] = true;
             } else {
-              // std::cout << "inside grid position = " << p << std::endl;
-              octomap::OcTreeKey pKey;
-              if (m_octree->coordToKeyChecked(p, pKey)) {
-                m_octree->updateNode(pKey, m_octree->getProbMissContactSensorLog());
-                // std::cout << "find inside grid and find key. p = " << vertex << std::endl;
-              } else {
-                // std::cout << "find inside grid but not find key. p = " << vertex << std::endl;
-              }
+              contain_flag_vertices_prod[l] = false;
             }
+          }
+        }
+        inside_flag = (std::find(contain_flag_link_sum.begin(), contain_flag_link_sum.end(), false) == contain_flag_link_sum.end()); // when all elements is true
+        for (int l=0; l<datas.size(); l++) {
+          if(contain_flag_vertices_sum[l] && !(contain_flag_vertices_prod[l]) ) {
+            if(datas[l].contact) {
+              surface_flag = true;
+            }
+          }
+        }
+        // inside
+        if(inside_flag) {
+          octomap::OcTreeKey pKey;
+          if (m_octree->coordToKeyChecked(p, pKey)) {
+            m_octree->updateNode(pKey, m_octree->getProbMissContactSensorLog());
+            // std::cout << "find inside grid and find key. p = " << vertex << std::endl;
+          }
+        }
+        // surface
+        else if(surface_flag) {
+          octomap::OcTreeKey pKey;
+          if (m_octree->coordToKeyChecked(p, pKey)) {
+            m_octree->updateNode(pKey, m_octree->getProbHitContactSensorLog());
+            // std::cout << "find surface grid and find key. p = " << vertex << std::endl;
           }
         }
 
