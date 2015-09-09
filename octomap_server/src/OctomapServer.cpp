@@ -65,7 +65,9 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_filterSpeckles(false), m_filterGroundPlane(false),
   m_groundFilterDistance(0.04), m_groundFilterAngle(0.15), m_groundFilterPlaneDistance(0.07),
   m_compressMap(true),
-  m_incrementalUpdate(false)
+  m_incrementalUpdate(false),
+  m_disableContactSensor(false),
+  m_disableCloud(false)
 {
   ros::NodeHandle private_nh(private_nh_);
   private_nh.param("frame_id", m_worldFrameId, m_worldFrameId);
@@ -180,6 +182,11 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_octomapFullService = m_nh.advertiseService("octomap_full", &OctomapServer::octomapFullSrv, this);
   m_clearBBXService = private_nh.advertiseService("clear_bbx", &OctomapServer::clearBBXSrv, this);
   m_resetService = private_nh.advertiseService("reset", &OctomapServer::resetSrv, this);
+
+  m_disableContactSensorService = private_nh.advertiseService("disable_contact_sensor", &OctomapServer::disableContactSensorSrv, this);
+  m_enableContactSensorService = private_nh.advertiseService("enable_contact_sensor", &OctomapServer::enableContactSensorSrv, this);
+  m_disableCloudService = private_nh.advertiseService("disable_cloud", &OctomapServer::disableCloudSrv, this);
+  m_enableCloudService = private_nh.advertiseService("enable_cloud", &OctomapServer::enableCloudSrv, this);
 
   dynamic_reconfigure::Server<OctomapServerConfig>::CallbackType f;
 
@@ -454,13 +461,19 @@ void OctomapServer::insertContactSensor(std::vector<octomap_msgs::ContactSensor>
 }
 
 void OctomapServer::insertContactSensorCallback(const octomap_msgs::ContactSensorArray::ConstPtr& msg){
+  if(m_disableContactSensor) {
+    return;
+  }
   std::vector<octomap_msgs::ContactSensor> datas = msg->datas;
   insertContactSensor(datas);
 }
 
 void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud){
-  ros::WallTime startTime = ros::WallTime::now();
+  if(m_disableCloud) {
+    return;
+  }
 
+  ros::WallTime startTime = ros::WallTime::now();
 
   //
   // ground filtering in base frame
@@ -1011,6 +1024,26 @@ bool OctomapServer::resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Res
   }
   m_fmarkerPub.publish(freeNodesVis);
 
+  return true;
+}
+
+bool OctomapServer::disableContactSensorSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp) {
+  m_disableContactSensor = true;
+  return true;
+}
+
+bool OctomapServer::enableContactSensorSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp) {
+  m_disableContactSensor = false;
+  return true;
+}
+
+bool OctomapServer::disableCloudSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp) {
+  m_disableCloud = true;
+  return true;
+}
+
+bool OctomapServer::enableCloudSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp) {
+  m_disableCloud = false;
   return true;
 }
 

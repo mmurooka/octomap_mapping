@@ -86,6 +86,11 @@ public:
   bool clearBBXSrv(BBXSrv::Request& req, BBXSrv::Response& resp);
   bool resetSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp);
 
+  bool disableContactSensorSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp);
+  bool enableContactSensorSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp);
+  bool disableCloudSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp);
+  bool enableCloudSrv(std_srvs::Empty::Request& req, std_srvs::Empty::Response& resp);
+
   virtual void insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud);
   void initContactSensor(ros::NodeHandle private_nh_);
   void insertContactSensor(std::vector<octomap_msgs::ContactSensor> datas);
@@ -199,7 +204,7 @@ protected:
 
   tf::MessageFilter<sensor_msgs::PointCloud2>* m_tfPointCloudSub;
   tf::MessageFilter<octomap_msgs::ContactSensorArray>* m_tfContactSensorSub;
-  ros::ServiceServer m_octomapBinaryService, m_octomapFullService, m_clearBBXService, m_resetService;
+  ros::ServiceServer m_octomapBinaryService, m_octomapFullService, m_clearBBXService, m_resetService, m_disableContactSensorService, m_enableContactSensorService, m_disableCloudService, m_enableCloudService;
   tf::TransformListener m_tfListener;
   dynamic_reconfigure::Server<OctomapServerConfig> m_reconfigureServer;
 
@@ -259,6 +264,9 @@ protected:
 
   robot_self_filter::SelfMask<pcl::PointXYZ>* m_selfMask;
   double min_sensor_dist_;
+
+  bool m_disableCloud;
+  bool m_disableContactSensor;
 };
 }
 
