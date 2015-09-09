@@ -436,14 +436,20 @@ void OctomapServer::insertContactSensor(std::vector<octomap_msgs::ContactSensor>
         }
         for (int l=0; l<datas.size(); l++) {
           if(contain_flag_vertices_prod_planner[l]) {
-            std::cout << "p ( " << p << " ) is inside of link ( " << datas[l].link_name << " ) " << std::endl;
+            // inside grid for each link
+            // std::cout << "p ( " << p << " ) is inside of link ( " << datas[l].link_name << " ) " << std::endl;
             octomap::OcTreeKey pKey;
             if (m_octree->coordToKeyChecked(p, pKey)) {
               OcTreeNode* tmpNode = m_octree->search(pKey);
-              if (tmpNode != NULL) {
-                if (m_octree->isNodeOccupied(tmpNode)) {
+              if (tmpNode == NULL || m_octree->isNodeOccupied(tmpNode)) {
+                // occupied
+                std::cout << "link ( " << datas[l].link_name << " ) is inside of occupied region." << std::endl;
+              } else if (m_octree->isNodeFree(tmpNode)) {
+                // free
 
-                }
+              } else {
+                // unknown
+                std::cout << "link ( " << datas[l].link_name << " ) is inside of unknown region." << std::endl;
               }
               // std::cout << "find inside grid and find key. p = " << vertex << std::endl;
             }
