@@ -49,6 +49,8 @@
   </node>
 
   <node pkg="octomap_server" type="pr2_contact_sensor.py" name="test_contact_sensor"
-        output="screen" />
+        output="screen" >
+    <param name="frame_id" type="string" value="$(arg frame_id)"/>
+  </node>
 
 </launch>
