@@ -14,7 +14,7 @@
   <node  name="resize_points_publisher"
          pkg="jsk_pcl_ros" type="resize_points_publisher">
     <remap from="~input" to="$(arg input)" />
-    <remap from="~output" to="$(arg input)_resized" />
+    <remap from="~output" to="cloud_in" />
     <param name="step_x" value="4" />
     <param name="step_y" value="4" />
   </node>
@@ -28,23 +28,24 @@
     <!-- maximum range to integrate (speedup!) -->
     <param name="sensor_model/max_range" value="5.0" />
 
-    <!-- data source to integrate (PointCloud2) -->
-    <remap from="cloud_in" to="$(arg input)_resized" />
+    <!-- data source to integrate -->
+    <remap from="cloud_in" to="cloud_in_relay" />
+    <remap from="contact_sensors_in" to="contact_sensors_in_relay" />
 
     <rosparam command="load" file="$(find octomap_server)/config/hrp2_contact_sensor_config.yaml" />
 
     <!-- <param name="robot_description" textfile="$(find hrpsys_gazebo_tutorials)/environment_models/Cube/Cube.urdf" /> -->
     <param name="robot_description"  command="$(find xacro)/xacro.py '$(find hrpsys_gazebo_tutorials)/robot_models/HRP2JSKNT/HRP2JSKNT.urdf.xacro'" />
 
-    <param name="resolution" value="0.012" />
+    <param name="resolution" value="0.015" />
 
     <!-- Sensor Input PassThrough Filter Params -->
-    <param name="pointcloud_min_z" value="0.0" />
-    <param name="pointcloud_max_z" value="0.6" />
-    <param name="pointcloud_min_y" value="-0.1" />
-    <param name="pointcloud_max_y" value="0.5" />
-    <param name="pointcloud_min_x" value="0.2" />
-    <param name="pointcloud_max_x" value="0.8" />
+    <param name="pointcloud_min_z" value="0.2" />
+    <param name="pointcloud_max_z" value="0.5" />
+    <param name="pointcloud_min_y" value="0.0" />
+    <param name="pointcloud_max_y" value="0.3" />
+    <param name="pointcloud_min_x" value="0.3" />
+    <param name="pointcloud_max_x" value="0.6" />
     <param name="offset_vis_unknown" value="0" />
   </node>
 
@@ -62,7 +63,9 @@
       <param name="tf_prefix" type="string" value="planner" />
     </node>
 
-    <node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher" />
+    <node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher" >
+      <param name="use_gui" type="bool" value="true" />
+    </node>
 
     <node name="tf_planner_body" pkg="tf" type="static_transform_publisher"
           args="0.0 0.0 0.0 0.0 0.0 0.0 1.0 BODY planner/BODY 50"/>

@@ -170,12 +170,12 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_fmarkerPub = m_nh.advertise<visualization_msgs::MarkerArray>("free_cells_vis_array", 1, m_latchedTopics);
   m_umarkerPub = m_nh.advertise<visualization_msgs::MarkerArray>("unknown_cells_vis_array", 1, m_latchedTopics);
 
-  m_pointCloudSub = new message_filters::Subscriber<sensor_msgs::PointCloud2> (m_nh, "cloud_in", 5);
-  m_tfPointCloudSub = new tf::MessageFilter<sensor_msgs::PointCloud2> (*m_pointCloudSub, m_tfListener, m_worldFrameId, 5);
+  m_pointCloudSub = new message_filters::Subscriber<sensor_msgs::PointCloud2> (m_nh, "cloud_in", 2);
+  m_tfPointCloudSub = new tf::MessageFilter<sensor_msgs::PointCloud2> (*m_pointCloudSub, m_tfListener, m_worldFrameId, 2);
   m_tfPointCloudSub->registerCallback(boost::bind(&OctomapServer::insertCloudCallback, this, _1));
 
-  m_contactSensorSub = new message_filters::Subscriber<octomap_msgs::ContactSensorArray> (m_nh, "contact_sensors_in", 20);
-  m_tfContactSensorSub = new tf::MessageFilter<octomap_msgs::ContactSensorArray> (*m_contactSensorSub, m_tfListener, m_worldFrameId, 20);
+  m_contactSensorSub = new message_filters::Subscriber<octomap_msgs::ContactSensorArray> (m_nh, "contact_sensors_in", 2);
+  m_tfContactSensorSub = new tf::MessageFilter<octomap_msgs::ContactSensorArray> (*m_contactSensorSub, m_tfListener, m_worldFrameId, 2);
   m_tfContactSensorSub->registerCallback(boost::bind(&OctomapServer::insertContactSensorCallback, this, _1));
 
   m_octomapBinaryService = m_nh.advertiseService("octomap_binary", &OctomapServer::octomapBinarySrv, this);
@@ -338,8 +338,6 @@ void OctomapServer::insertContactSensor(std::vector<octomap_msgs::ContactSensor>
     //      std::cout << "bbx " << i << " size: " << diff[i] << " " << steps[i] << " steps\n";
   }
 
-  ROS_WARN_STREAM("insert contact sensor and update map");
-
   m_selfMask->assumeFrame(tmpHeader);
   m_selfMaskPlanner->assumeFrame(tmpHeader);
 
@@ -464,8 +462,11 @@ void OctomapServer::insertContactSensorCallback(const octomap_msgs::ContactSenso
   if(m_disableContactSensor) {
     return;
   }
+  ROS_WARN_STREAM("insert contact sensor");
   std::vector<octomap_msgs::ContactSensor> datas = msg->datas;
   insertContactSensor(datas);
+
+  publishAll(msg->header.stamp);
 }
 
 void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr& cloud){
@@ -473,6 +474,7 @@ void OctomapServer::insertCloudCallback(const sensor_msgs::PointCloud2::ConstPtr
     return;
   }
 
+  ROS_WARN_STREAM("insert pointcloud");
   ros::WallTime startTime = ros::WallTime::now();
 
   //
