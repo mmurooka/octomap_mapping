@@ -198,6 +198,8 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_reconfigureServer.setCallback(f);
 
   initContactSensor(private_nh);
+
+  publishAll(ros::Time::now());
 }
 
 OctomapServer::~OctomapServer(){
