@@ -69,6 +69,9 @@
 
 #include <pr2_navigation_self_filter/self_mask.h>
 
+// #include <ompl/geometric/planners/rrt/RRT.h>
+
+
 namespace octomap_server {
   enum
   {
@@ -281,6 +284,8 @@ protected:
 
   bool m_disableCloud;
   bool m_disableContactSensor;
+
+  // ompl::geometric::RRT m_rrtPlanner;
 };
 }
 
