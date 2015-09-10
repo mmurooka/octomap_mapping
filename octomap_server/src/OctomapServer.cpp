@@ -67,7 +67,8 @@ OctomapServer::OctomapServer(ros::NodeHandle private_nh_)
   m_compressMap(true),
   m_incrementalUpdate(false),
   m_disableContactSensor(false),
-  m_disableCloud(false)
+  m_disableCloud(false),
+  m_enablePlanner(false)
 {
   ros::NodeHandle private_nh(private_nh_);
   private_nh.param("frame_id", m_worldFrameId, m_worldFrameId);
@@ -345,7 +346,9 @@ void OctomapServer::insertContactSensor(std::vector<octomap_msgs::ContactSensor>
   }
 
   m_selfMask->assumeFrame(tmpHeader);
-  m_selfMaskPlanner->assumeFrame(tmpHeader);
+  if(m_enablePlanner) {
+    m_selfMaskPlanner->assumeFrame(tmpHeader);
+  }
 
   // loop for grids of octomap
   std::vector< std::vector<bool> > contain_flag(datas.size(), std::vector<bool>(8));
@@ -378,11 +381,13 @@ void OctomapServer::insertContactSensor(std::vector<octomap_msgs::ContactSensor>
                 } else {
                   contain_flag[l][i+j*2+k*4] = false;
                 }
-                if (m_selfMaskPlanner->getMaskContainmentforNamedLink(vertex(0), vertex(1), vertex(2), datas[l].link_name) == robot_self_filter::INSIDE) {
-                  // std::cout << "inside vertex = " << vertex << std::endl;
-                  contain_flag_planner[l][i+j*2+k*4] = true;
-                } else {
-                  contain_flag_planner[l][i+j*2+k*4] = false;
+                if(m_enablePlanner) {
+                  if (m_selfMaskPlanner->getMaskContainmentforNamedLink(vertex(0), vertex(1), vertex(2), datas[l].link_name) == robot_self_filter::INSIDE) {
+                    // std::cout << "inside vertex = " << vertex << std::endl;
+                    contain_flag_planner[l][i+j*2+k*4] = true;
+                  } else {
+                    contain_flag_planner[l][i+j*2+k*4] = false;
+                  }
                 }
               }
             }
@@ -431,32 +436,34 @@ void OctomapServer::insertContactSensor(std::vector<octomap_msgs::ContactSensor>
         }
 
         // check collision for planner
-        std::vector<bool> contain_flag_vertices_prod_planner(datas.size(), true);
-        for (int l=0; l<datas.size(); l++) {
-          for (int i=0; i<8; i++) {
-            if(contain_flag_planner[l][i]) {
-            } else {
-              contain_flag_vertices_prod_planner[l] = false;
+        if(m_enablePlanner) {
+          std::vector<bool> contain_flag_vertices_prod_planner(datas.size(), true);
+          for (int l=0; l<datas.size(); l++) {
+            for (int i=0; i<8; i++) {
+              if(contain_flag_planner[l][i]) {
+              } else {
+                contain_flag_vertices_prod_planner[l] = false;
+              }
             }
           }
-        }
-        for (int l=0; l<datas.size(); l++) {
-          if(contain_flag_vertices_prod_planner[l]) {
-            // inside grid for each link
-            // std::cout << "p ( " << p << " ) is inside of link ( " << datas[l].link_name << " ) " << std::endl;
-            octomap::OcTreeKey pKey;
-            if (m_octree->coordToKeyChecked(p, pKey)) {
-              OcTreeNode* tmpNode = m_octree->search(pKey);
-              if (tmpNode == NULL || m_octree->isNodeUnknown(tmpNode)) {
-                // unknown
-                std::cout << "link ( " << datas[l].link_name << " ) is inside of unknown region." << std::endl;
-              } else if (m_octree->isNodeOccupied(tmpNode)) {
-                // occupied
-                std::cout << "link ( " << datas[l].link_name << " ) is inside of occupied region." << std::endl;
-              } else {
-                // free
+          for (int l=0; l<datas.size(); l++) {
+            if(contain_flag_vertices_prod_planner[l]) {
+              // inside grid for each link
+              // std::cout << "p ( " << p << " ) is inside of link ( " << datas[l].link_name << " ) " << std::endl;
+              octomap::OcTreeKey pKey;
+              if (m_octree->coordToKeyChecked(p, pKey)) {
+                OcTreeNode* tmpNode = m_octree->search(pKey);
+                if (tmpNode == NULL || m_octree->isNodeUnknown(tmpNode)) {
+                  // unknown
+                  std::cout << "link ( " << datas[l].link_name << " ) is inside of unknown region." << std::endl;
+                } else if (m_octree->isNodeOccupied(tmpNode)) {
+                  // occupied
+                  std::cout << "link ( " << datas[l].link_name << " ) is inside of occupied region." << std::endl;
+                } else {
+                  // free
+                }
+                // std::cout << "find inside grid and find key. p = " << vertex << std::endl;
               }
-              // std::cout << "find inside grid and find key. p = " << vertex << std::endl;
             }
           }
         }

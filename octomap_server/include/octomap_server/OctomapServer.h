@@ -284,6 +284,7 @@ protected:
 
   bool m_disableCloud;
   bool m_disableContactSensor;
+  bool m_enablePlanner;
 
   // ompl::geometric::RRT m_rrtPlanner;
 };
