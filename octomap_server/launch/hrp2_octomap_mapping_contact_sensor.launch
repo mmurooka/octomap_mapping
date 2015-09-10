@@ -36,7 +36,8 @@
 
     <param name="robot_description"  command="$(find xacro)/xacro.py '$(find hrpsys_gazebo_tutorials)/robot_models/$(arg ROBOT)/$(arg ROBOT).urdf.xacro'" />
 
-    <param name="resolution" value="0.015" />
+    <param name="resolution" value="0.020" />
+    <!-- <param name="resolution" value="0.015" /> -->
 
     <!-- Sensor Input PassThrough Filter Params -->
     <param name="occupancy_min_x" value="0.3" />
