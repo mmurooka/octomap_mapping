@@ -15,7 +15,11 @@ self_see_links:
  - name: LARM_LINK4
  - name: LARM_LINK5
  - name: LARM_LINK6
- - name: LARM_LINK7
+ - name: LARM_LINK6_FRONT
+ - name: LARM_LINK6_INNER
+ - name: LARM_LINK6_OUTER
+ - name: LARM_LINK6_UPPER
+ - name: LARM_LINK6_LOWER
  # - name: RARM_LINK0
  # - name: RARM_LINK1
  # - name: RARM_LINK2
