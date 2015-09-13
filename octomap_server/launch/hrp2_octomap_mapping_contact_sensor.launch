@@ -11,6 +11,20 @@
   <arg name="input" default="/xtion/depth/points"/>
   <arg name="frame_id" default="base_footprint"/>
 
+  <arg name="resolution" default="0.020" />
+  <arg name="occupancy_min_x" default="0.40" />
+  <arg name="occupancy_max_x" default="0.7" />
+  <arg name="occupancy_min_y" default="0.0" />
+  <arg name="occupancy_max_y" default="0.3" />
+  <arg name="occupancy_min_z" default="0.85" />
+  <arg name="occupancy_max_z" default="1.15" />
+  <arg name="pointcloud_min_x" default="-1.0" />
+  <arg name="pointcloud_max_x" default="3.0" />
+  <arg name="pointcloud_min_y" default="-1.5" />
+  <arg name="pointcloud_max_y" default="1.5" />
+  <arg name="pointcloud_min_z" default="-1.0" />
+  <arg name="pointcloud_max_z" default="2.0" />
+
   <node  name="resize_points_publisher"
          pkg="jsk_pcl_ros" type="resize_points_publisher">
     <remap from="~input" to="$(arg input)" />
@@ -34,30 +48,27 @@
 
     <rosparam command="load" file="$(find octomap_server)/config/hrp2_contact_sensor_config.yaml" />
 
-    <param name="robot_description"  command="$(find xacro)/xacro.py '$(find hrpsys_gazebo_tutorials)/robot_models/$(arg ROBOT)/$(arg ROBOT).urdf.xacro'" />
+    <!-- <param name="robot_description"  command="$(find xacro)/xacro.py '$(find hrpsys_gazebo_tutorials)/robot_models/$(arg ROBOT)/$(arg ROBOT).urdf.xacro'" /> -->
+    <param name="robot_description" textfile="$(find hrpsys_ros_bridge_tutorials)/models/HRP2JSKNT_WH_SENSORS.urdf" />
 
-    <param name="resolution" value="0.020" />
+    <param name="resolution" value="$(arg resolution)" />
     <!-- <param name="resolution" value="0.015" /> -->
 
     <!-- Sensor Input PassThrough Filter Params -->
-    <param name="occupancy_min_x" value="0.3" />
-    <param name="occupancy_max_x" value="0.6" />
-    <param name="occupancy_min_y" value="0.0" />
-    <param name="occupancy_max_y" value="0.3" />
-    <param name="occupancy_min_z" value="0.2" />
-    <param name="occupancy_max_z" value="0.5" />
-    <param name="pointcloud_min_x" value="0.0" />
-    <param name="pointcloud_max_x" value="2.0" />
-    <param name="pointcloud_min_y" value="-1.0" />
-    <param name="pointcloud_max_y" value="1.0" />
-    <param name="pointcloud_min_z" value="-1.0" />
-    <param name="pointcloud_max_z" value="0.5" />
-    <!-- <param name="pointcloud_min_x" value="0.3" /> -->
-    <!-- <param name="pointcloud_max_x" value="0.6" /> -->
-    <!-- <param name="pointcloud_min_y" value="0.0" /> -->
-    <!-- <param name="pointcloud_max_y" value="0.3" /> -->
-    <!-- <param name="pointcloud_min_z" value="0.2" /> -->
-    <!-- <param name="pointcloud_max_z" value="0.5" /> -->
+
+    <!-- for display -->
+    <param name="occupancy_min_x" value="$(arg occupancy_min_x)" />
+    <param name="occupancy_max_x" value="$(arg occupancy_max_x)" />
+    <param name="occupancy_min_y" value="$(arg occupancy_min_y)" />
+    <param name="occupancy_max_y" value="$(arg occupancy_max_y)" />
+    <param name="occupancy_min_z" value="$(arg occupancy_min_z)" />
+    <param name="occupancy_max_z" value="$(arg occupancy_max_z)" />
+    <param name="pointcloud_min_x" value="$(arg pointcloud_min_x)" />
+    <param name="pointcloud_max_x" value="$(arg pointcloud_max_x)" />
+    <param name="pointcloud_min_y" value="$(arg pointcloud_min_y)" />
+    <param name="pointcloud_max_y" value="$(arg pointcloud_max_y)" />
+    <param name="pointcloud_min_z" value="$(arg pointcloud_min_z)" />
+    <param name="pointcloud_max_z" value="$(arg pointcloud_max_z)" />
     <param name="offset_vis_unknown" value="0" />
   </node>
 
@@ -67,8 +78,9 @@
   </node>
 
 
-  <group ns="planner">
-    <param name="robot_description"  command="$(find xacro)/xacro.py '$(find hrpsys_gazebo_tutorials)/robot_models/$(arg ROBOT)/$(arg ROBOT).urdf.xacro'" />
+  <group ns="planner" if="false">
+    <!-- <param name="robot_description"  command="$(find xacro)/xacro.py '$(find hrpsys_gazebo_tutorials)/robot_models/$(arg ROBOT)/$(arg ROBOT).urdf.xacro'" /> -->
+    <param name="robot_description" textfile="$(find hrpsys_ros_bridge_tutorials)/models/HRP2JSKNT_WH_SENSORS.urdf" />
 
     <node pkg="robot_state_publisher" type="state_publisher" name="robot_state_publisher" >
       <param name="tf_prefix" type="string" value="planner" />
