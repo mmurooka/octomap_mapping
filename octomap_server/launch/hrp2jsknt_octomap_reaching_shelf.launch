@@ -11,7 +11,7 @@
     <arg name="resolution" default="0.020" />
 
     <arg name="occupancy_min_x" default="0.40" />
-    <arg name="occupancy_max_x" default="0.7" />
+    <arg name="occupancy_max_x" default="0.80" />
     <arg name="occupancy_min_y" default="-0.05" />
     <arg name="occupancy_max_y" default="0.35" />
     <arg name="occupancy_min_z" default="0.65" />
